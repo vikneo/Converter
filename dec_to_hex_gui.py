@@ -22,6 +22,7 @@ class DecToHexConverter:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title(f"Dec → Hex конвертер v{__version__}")
+
         self.root.geometry("600x560")
         self.root.resizable(False, False)
 
@@ -374,36 +375,90 @@ class DecToHexConverter:
 
     def _worker_convert(self, in_path: str, out_path: str,
                         prefix: str, add_header: bool):
-        tmp_path = out_path + ".tmp"
-        processed = 0
-        skipped = 0
-        total_lines = 0
-
+        """Обёртка над convert() для запуска в отдельном потоке."""
         try:
             self._msg_queue.put({"kind": "phase", "text": "Подсчёт строк…"})
-            total_lines = self._count_lines(in_path, self._cancel_flag)
-            if self._cancel_flag.is_set():
-                self._msg_queue.put({"kind": "done", "cancelled": True})
-                return
 
+            def log(msg: str):
+                self._msg_queue.put({"kind": "log", "text": msg})
+
+            def progress(current: int, total: int):
+                self._msg_queue.put({
+                    "kind": "progress", "current": current, "total": total
+                })
+
+            # сообщим UI общее количество строк, как только узнаем
+            # (convert сначала сам считает — перехватим это через progress)
+            processed, skipped = self.convert(
+                in_path, out_path, prefix,
+                add_header=add_header,
+                log=log,
+                progress=progress,
+                cancel_flag=self._cancel_flag,
+            )
+
+            # total уже известен внутри, но нам для done он не обязателен —
+            # UI получит финальный progress(current, total) перед done
             self._msg_queue.put({
-                "kind": "progress", "current": 0, "total": total_lines
+                "kind": "done",
+                "processed": processed,
+                "skipped": skipped,
+                "out_path": out_path,
             })
-            self._msg_queue.put({
-                "kind": "log",
-                "text": f"Всего строк для обработки: {total_lines}",
-            })
+
+        except Cancelled:
+            self._msg_queue.put({"kind": "done", "cancelled": True})
+        except Exception as e:
+            self._msg_queue.put({"kind": "done", "error": str(e)})
+
+    @staticmethod
+    def convert(
+        in_path: str,
+        out_path: str,
+        prefix: str,
+        add_header: bool = False,
+        log=lambda msg: None,
+        progress=lambda current, total: None,
+        cancel_flag: threading.Event | None = None,
+    ) -> tuple[int, int]:
+        """
+        Построчно конвертирует dec → hex.
+
+        Возвращает (processed, skipped).
+
+        - Читает только первую колонку CSV.
+        - Пустые/пробельные строки пропускает молча (не считаются ни в processed,
+        ни в skipped).
+        - Нечисловые и отрицательные значения пропускает с вызовом log().
+        - Пишет атомарно: сначала в out_path + ".tmp", потом os.replace.
+        - Кодировка: utf-8-sig на входе (съедает BOM), utf-8 на выходе.
+
+        Параметры:
+            log      — вызывается со строкой для лога.
+            progress — вызывается с (current, total) по ходу обработки.
+            cancel_flag — если установлен, операция прерывается (кидает _Cancelled).
+        """
+        if cancel_flag is None:
+            cancel_flag = threading.Event()
+
+        processed = 0
+        skipped = 0
+        tmp_path = out_path + ".tmp"
+
+        try:
+            # считаем строки — нужно для прогресса
+            total_lines = DecToHexConverter._count_lines(in_path, cancel_flag)
+            progress(0, total_lines)
 
             with open(tmp_path, "w", newline="", encoding="utf-8") as out_f:
                 writer = csv.writer(out_f, lineterminator="\n")
                 if add_header:
                     writer.writerow(["value_hex"])
 
-                with open(in_path, newline="",
-                          encoding="utf-8-sig") as in_f:
+                with open(in_path, "r", newline="", encoding="utf-8-sig") as in_f:
                     reader = csv.reader(in_f)
                     for line_no, row in enumerate(reader, start=1):
-                        if line_no % 1000 == 0 and self._cancel_flag.is_set():
+                        if line_no % 1000 == 0 and cancel_flag.is_set():
                             raise Cancelled()
 
                         if not row or not row[0].strip():
@@ -413,68 +468,36 @@ class DecToHexConverter:
                         try:
                             n = int(raw)
                         except ValueError:
-                            self._msg_queue.put({
-                                "kind": "log",
-                                "text": f"  ⚠ Строка {line_no}: «{raw}» — не число, пропуск",
-                            })
+                            log(f"  ⚠ Строка {line_no}: «{raw}» — не число, пропуск")
                             skipped += 1
-                            self._msg_queue.put({
-                                "kind": "progress",
-                                "current": processed + skipped,
-                                "total": total_lines,
-                            })
+                            progress(processed + skipped, total_lines)
                             continue
 
                         if n < 0:
-                            self._msg_queue.put({
-                                "kind": "log",
-                                "text": f"  ⚠ Строка {line_no}: «{raw}» — отрицательное, пропуск",
-                            })
+                            log(f"  ⚠ Строка {line_no}: «{raw}» — отрицательное, пропуск")
                             skipped += 1
-                            self._msg_queue.put({
-                                "kind": "progress",
-                                "current": processed + skipped,
-                                "total": total_lines,
-                            })
+                            progress(processed + skipped, total_lines)
                             continue
 
                         writer.writerow([f"{prefix}{n:x}".upper()])
                         processed += 1
 
                         if processed % 500 == 0:
-                            self._msg_queue.put({
-                                "kind": "progress",
-                                "current": processed + skipped,
-                                "total": total_lines,
-                            })
+                            progress(processed + skipped, total_lines)
 
-            self._msg_queue.put({
-                "kind": "progress",
-                "current": processed + skipped,
-                "total": total_lines,
-            })
-
+            progress(processed + skipped, total_lines)
             os.replace(tmp_path, out_path)
 
-            self._msg_queue.put({
-                "kind": "done",
-                "processed": processed,
-                "skipped": skipped,
-                "total": total_lines,
-                "out_path": out_path,
-            })
+        except Exception:
+            DecToHexConverter._cleanup_tmp(tmp_path)
+            raise
 
-        except Cancelled:
-            self._cleanup_tmp(tmp_path)
-            self._msg_queue.put({"kind": "done", "cancelled": True})
-        except Exception as e:
-            self._cleanup_tmp(tmp_path)
-            self._msg_queue.put({"kind": "done", "error": str(e)})
+        return processed, skipped
 
     @staticmethod
     def _count_lines(in_path: str, cancel_flag: threading.Event) -> int:
         total = 0
-        with open(in_path, newline="", encoding="utf-8-sig") as in_f:
+        with open(in_path, "r", newline="", encoding="utf-8-sig") as in_f:
             reader = csv.reader(in_f)
             for line_no, row in enumerate(reader, start=1):
                 if line_no % 10000 == 0 and cancel_flag.is_set():
