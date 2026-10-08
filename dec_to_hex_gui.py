@@ -1,4 +1,3 @@
-from builtins import staticmethod
 import csv
 import json
 import os
@@ -7,11 +6,11 @@ import subprocess
 import sys
 import threading
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from builtins import staticmethod
 from pathlib import Path
+from tkinter import filedialog, messagebox, ttk
 
 from exeptions import Cancelled
-
 
 __version__ = "0.1.0"
 SETTINGS_PATH = Path.home() / ".dec_to_hex.json"
@@ -53,7 +52,7 @@ class DecToHexConverter:
     @staticmethod
     def _load_settings() -> dict:
         try:
-            with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
+            with open(SETTINGS_PATH, encoding="utf-8") as f:
                 data = json.load(f)
             if not isinstance(data, dict):
                 return {}
@@ -400,7 +399,7 @@ class DecToHexConverter:
                 if add_header:
                     writer.writerow(["value_hex"])
 
-                with open(in_path, "r", newline="",
+                with open(in_path, newline="",
                           encoding="utf-8-sig") as in_f:
                     reader = csv.reader(in_f)
                     for line_no, row in enumerate(reader, start=1):
@@ -475,7 +474,7 @@ class DecToHexConverter:
     @staticmethod
     def _count_lines(in_path: str, cancel_flag: threading.Event) -> int:
         total = 0
-        with open(in_path, "r", newline="", encoding="utf-8-sig") as in_f:
+        with open(in_path, newline="", encoding="utf-8-sig") as in_f:
             reader = csv.reader(in_f)
             for line_no, row in enumerate(reader, start=1):
                 if line_no % 10000 == 0 and cancel_flag.is_set():
