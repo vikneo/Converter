@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dec-to-hex"
+version = "0.1.0"
+description = "GUI-конвертер десятичных чисел из CSV в HEX"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Your Name", email = "you@example.com" }]
+keywords = ["csv", "hex", "converter", "gui", "tkinter"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Environment :: X11 Applications",
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: MacOS X",
+    "Topic :: Utilities",
+]
+
+# Зависимостей в рантайме нет — только stdlib.
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pyinstaller>=6.0",
+    "ruff>=0.4",
+    "pytest>=8.0",
+]
+
+[project.gui-scripts]
+dec-to-hex = "dec_to_hex_gui:main"
+
+[tool.setuptools]
+py-modules = ["dec_to_hex_gui"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = ["E501"]  # длинные строки в UI-коде оправданы
