@@ -4,14 +4,14 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:  # позволяет запустить вручную из вкладки Actions
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   build:
-    name: Build on ${{ matrix.os }}
+    name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -28,8 +28,7 @@ jobs:
             exe_name: dec_to_hex
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -37,19 +36,28 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install Tk (Linux only)
+      - name: Install Tk (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-tk
 
-      - name: Install dev deps
+      - name: Install deps
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
+      - name: Run tests before build
+        run: pytest -q
+
       - name: Build
         run: python build/build_exe.py --onefile
+
+      - name: Verify artifact exists
+        shell: bash
+        run: |
+          ls -la dist/
+          test -f "dist/${{ matrix.exe_name }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -69,12 +77,13 @@ jobs:
         with:
           path: artifacts
 
-      - name: Rename and collect
+      - name: Collect release files
+        shell: bash
         run: |
           mkdir -p release
           cp artifacts/dec_to_hex-windows/dec_to_hex.exe release/dec_to_hex-windows.exe
-          cp artifacts/dec_to_hex-macos/dec_to_hex    release/dec_to_hex-macos
-          cp artifacts/dec_to_hex-linux/dec_to_hex    release/dec_to_hex-linux
+          cp artifacts/dec_to_hex-macos/dec_to_hex      release/dec_to_hex-macos
+          cp artifacts/dec_to_hex-linux/dec_to_hex      release/dec_to_hex-linux
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
