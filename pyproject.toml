@@ -35,6 +35,11 @@ dev = [
 [project.gui-scripts]
 dec-to-hex = "dec_to_hex_gui:main"
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra -q"
+
 [tool.setuptools]
 py-modules = ["dec_to_hex_gui"]
 
