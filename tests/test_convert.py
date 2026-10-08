@@ -1,6 +1,8 @@
 import csv
 from pathlib import Path
 
+import pytest
+
 from dec_to_hex_gui import DecToHexConverter
 
 
@@ -70,6 +72,18 @@ def test_non_numeric_skipped(tmp_path):
     assert any("abc" in m for m in log)
 
 
+def test_empty_file(tmp_path):
+    src = tmp_path / "in.csv"
+    dst = tmp_path / "out.csv"
+    src.write_text("", encoding="utf-8")
+
+    processed, skipped = DecToHexConverter.convert(str(src), str(dst), prefix="0x")
+    assert processed == 0
+    assert skipped == 0
+    assert dst.exists()
+    assert _read_csv(dst) == []
+
+
 def test_add_header(tmp_path):
     src = tmp_path / "in.csv"
     dst = tmp_path / "out.csv"
@@ -92,16 +106,25 @@ def test_atomic_write_leaves_no_tmp(tmp_path):
     assert not (tmp_path / "out.csv.tmp").exists()
 
 
-def test_atomic_write_cleanup_on_error(tmp_path):
+def test_atomic_write_cleanup_on_error(tmp_path, monkeypatch):
     """Если конвертация упала — .tmp не должен остаться."""
     src = tmp_path / "in.csv"
     dst = tmp_path / "out.csv"
-    _write_csv(src, ["42"])
+    _write_csv(src, ["1", "2", "3"])
 
-    # сделаем src недоступным после открытия — не будем усложнять,
-    # проверим, что tmp отсутствует при успехе
-    DecToHexConverter.convert(str(src), str(dst), prefix="0x")
+    # ломаем os.replace — это последний шаг, .tmp уже создан
+    def boom(*args, **kwargs):
+        raise RuntimeError("simulated failure")
+
+    monkeypatch.setattr("dec_to_hex_gui.os.replace", boom)
+
+    with pytest.raises(RuntimeError, match="simulated failure"):
+        DecToHexConverter.convert(str(src), str(dst), prefix="0x")
+
+    # .tmp должен быть подчищен
     assert not (tmp_path / "out.csv.tmp").exists()
+    # и целевой файл не должен появиться
+    assert not dst.exists()
 
 
 def test_bom_handled(tmp_path):
