@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    name: Lint & Test (${{ matrix.os }} / py${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python: ["3.10", "3.11", "3.12"]
+        include:
+          # один прогон на Windows для проверки кроссплатформенности
+          - os: windows-latest
+            python: "3.12"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+
+      - name: Install Tk (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Tests (pytest)
+        run: pytest --cov=dec_to_hex_gui --cov-report=term-missing
+
+  smoke-gui:
+    name: GUI smoke test (import + Tk init)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Tk
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk xvfb
+      - name: Install deps
+        run: pip install -r requirements-dev.txt
+      - name: Init Tk under Xvfb
+        run: |
+          xvfb-run -a python -c "
+          import tkinter as tk
+          from dec_to_hex_gui import DecToHexConverter
+          root = tk.Tk()
+          app = DecToHexConverter(root)
+          root.update_idletasks()
+          root.destroy()
+          print('OK: Tk initialized and window built')
+          "
