@@ -1,0 +1,35 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+ENV/
+
+# --- PyInstaller ---
+*.spec
+!build/build_exe.spec
+
+# --- IDE / OS ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# --- Локальные настройки приложения ---
+.dec_to_hex.json
+
+# --- Прочее ---
+*.log
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
