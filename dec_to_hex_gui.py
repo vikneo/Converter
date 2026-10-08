@@ -10,7 +10,7 @@ from builtins import staticmethod
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
-from exeptions import Cancelled
+from exceptions import Cancelled
 
 __version__ = "0.1.0"
 SETTINGS_PATH = Path.home() / ".dec_to_hex.json"
