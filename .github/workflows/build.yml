@@ -1,0 +1,86 @@
+name: Build
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:  # позволяет запустить вручную из вкладки Actions
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: dec_to_hex-windows
+            exe_name: dec_to_hex.exe
+          - os: macos-latest
+            artifact_name: dec_to_hex-macos
+            exe_name: dec_to_hex
+          - os: ubuntu-latest
+            artifact_name: dec_to_hex-linux
+            exe_name: dec_to_hex
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Tk (Linux only)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+
+      - name: Install dev deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Build
+        run: python build/build_exe.py --onefile
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist/${{ matrix.exe_name }}
+          if-no-files-found: error
+
+  release:
+    name: Attach artifacts to release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Rename and collect
+        run: |
+          mkdir -p release
+          cp artifacts/dec_to_hex-windows/dec_to_hex.exe release/dec_to_hex-windows.exe
+          cp artifacts/dec_to_hex-macos/dec_to_hex    release/dec_to_hex-macos
+          cp artifacts/dec_to_hex-linux/dec_to_hex    release/dec_to_hex-linux
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
