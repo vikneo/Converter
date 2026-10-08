@@ -10,8 +10,8 @@
     python assets/make_icon.py
 """
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont
 
+from PIL import Image, ImageDraw, ImageFont
 
 HERE = Path(__file__).resolve().parent
 BG = (30, 30, 40)

@@ -12,7 +12,7 @@ def _write_csv(path: Path, rows: list[str]) -> None:
 
 
 def _read_csv(path: Path) -> list[list[str]]:
-    with open(path, "r", newline="", encoding="utf-8") as f:
+    with open(path, newline="", encoding="utf-8") as f:
         return list(csv.reader(f))
 
 
@@ -98,16 +98,7 @@ def test_atomic_write_cleanup_on_error(tmp_path):
     dst = tmp_path / "out.csv"
     _write_csv(src, ["42"])
 
-    # эмулируем ошибку: подменяем встроенный int так, чтобы он кинул
-    # что-то отличное от ValueError
-    import dec_to_hex_gui as mod
-
-    original = mod.__builtins__["int"] if isinstance(mod.__builtins__, dict) else int
-
-    def boom(*a, **kw):
-        raise RuntimeError("boom")
-
-    # проще: сделаем src недоступным после открытия — не будем усложнять,
+    # сделаем src недоступным после открытия — не будем усложнять,
     # проверим, что tmp отсутствует при успехе
     DecToHexConverter.convert(str(src), str(dst), prefix="0x")
     assert not (tmp_path / "out.csv.tmp").exists()

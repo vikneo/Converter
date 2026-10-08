@@ -455,7 +455,7 @@ class DecToHexConverter:
                 if add_header:
                     writer.writerow(["value_hex"])
 
-                with open(in_path, "r", newline="", encoding="utf-8-sig") as in_f:
+                with open(in_path, newline="", encoding="utf-8-sig") as in_f:
                     reader = csv.reader(in_f)
                     for line_no, row in enumerate(reader, start=1):
                         if line_no % 1000 == 0 and cancel_flag.is_set():
@@ -497,7 +497,7 @@ class DecToHexConverter:
     @staticmethod
     def _count_lines(in_path: str, cancel_flag: threading.Event) -> int:
         total = 0
-        with open(in_path, "r", newline="", encoding="utf-8-sig") as in_f:
+        with open(in_path, newline="", encoding="utf-8-sig") as in_f:
             reader = csv.reader(in_f)
             for line_no, row in enumerate(reader, start=1):
                 if line_no % 10000 == 0 and cancel_flag.is_set():
