@@ -6,7 +6,6 @@ import subprocess
 import sys
 import threading
 import tkinter as tk
-from builtins import staticmethod
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
@@ -332,10 +331,7 @@ class DecToHexConverter:
         except queue.Empty:
             pass
 
-        if self._worker and self._worker.is_alive():
-            self.root.after(50, self._poll_queue)
-        else:
-            self.root.after(50, self._poll_queue)
+        self.root.after(50, self._poll_queue)
 
     def _on_done(self, msg: dict):
         self.run_btn.config(state="normal")

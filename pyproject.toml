@@ -9,7 +9,7 @@ description = "GUI-конвертер десятичных чисел из CSV �
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Your Name", email = "you@example.com" }]
+authors = [{ name = "Viktor Martynov", email = "" }]
 keywords = ["csv", "hex", "converter", "gui", "tkinter"]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -41,7 +41,7 @@ python_files = ["test_*.py"]
 addopts = "-ra -q"
 
 [tool.setuptools]
-py-modules = ["dec_to_hex_gui"]
+py-modules = ["dec_to_hex_gui", "exceptions"]
 
 [tool.ruff]
 line-length = 88
