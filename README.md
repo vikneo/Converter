@@ -4,6 +4,8 @@ GUI-утилита для пакетной конвертации десятич
 
 ![Python](https://img.shields.io/badge/python-3.10+-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
+![CI](https://github.com/vikneo/Converter/actions/workflows/ci.yml/badge.svg)
+![Build](https://github.com/vikneo/Converter/actions/workflows/build.yml/badge.svg)
 
 ## Возможности
 
