@@ -28,7 +28,7 @@ GUI-утилита для пакетной конвертации десятич
 
 ```bash
 git clone <repo-url>
-cd dec_to_hex
+cd Converter
 python dec_to_hex_gui.py
 ```
 
@@ -64,7 +64,7 @@ abc
 
 ```bash
 pip install -r requirements-dev.txt
-python build/build_exe.py
+python scripts/build_exe.py
 ```
 
 Артефакт появится в `dist/dec_to_hex.exe`.
