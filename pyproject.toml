@@ -9,7 +9,7 @@ description = "GUI-конвертер десятичных чисел из CSV �
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Viktor Martynov", email = "logica-plc.mail.ru" }]
+authors = [{ name = "Viktor Martynov", email = "logica-plc@mail.ru" }]
 keywords = ["csv", "hex", "converter", "gui", "tkinter"]
 classifiers = [
     "Programming Language :: Python :: 3",
